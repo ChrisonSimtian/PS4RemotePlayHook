@@ -1,20 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using EasyHook;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels.Ipc;
-using System.IO;
 using Capture.Interface;
 using System.Diagnostics;
-using System.Threading;
 using Capture.Hook;
-using System.Security.Principal;
-using System.Security.Cryptography;
-using System.Security.AccessControl;
-using System.Runtime.Remoting.Channels;
-using System.Runtime.Serialization.Formatters;
+using System.Threading;
 
 namespace Capture
 {
@@ -24,7 +15,7 @@ namespace Capture
         /// Must be null to allow a random channel name to be generated
         /// </summary>
         string _channelName = null;
-        private IpcServerChannel _screenshotServer;
+        private IpcServerChannel _frameCaptureServer;
         private CaptureInterface _serverInterface;
         public Process Process { get; set; }
 
@@ -55,7 +46,7 @@ namespace Capture
             //_serverInterface = new CaptureInterface() { ProcessId = process.Id };
 
             // Initialise the IPC server (with our instance of _serverInterface)
-            _screenshotServer = RemoteHooking.IpcCreateServer<CaptureInterface>(
+            _frameCaptureServer = RemoteHooking.IpcCreateServer<CaptureInterface>(
                 ref _channelName,
                 WellKnownObjectMode.Singleton,
                 _serverInterface);
@@ -145,9 +136,9 @@ namespace Capture
                 }
 
                 // Prevent an infinite loop
-                if (i > 120) // about 30secs
+                if (i > 60) // about 15secs
                 {
-                    throw new Exception("Could not set process window to the foreground");
+                    // skip bring to front if it isn't working
                 }
                 i++;
             }

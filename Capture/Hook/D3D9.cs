@@ -8,6 +8,7 @@ namespace Capture.Hook
 {
     /// <summary>
     /// The full list of IDirect3DDevice9 functions with the correct index
+    /// The order is based in the D3D9.h order
     /// </summary>
     public enum Direct3DDevice9FunctionOrdinals : short
     {
@@ -143,7 +144,7 @@ namespace Capture.Hook
         CheckResourceResidency = 125,
         SetMaximumFrameLatency = 126,
         GetMaximumFrameLatency = 127,
-        CheckDeviceState_ = 128,
+        CheckDeviceState = 128,
         CreateRenderTargetEx = 129,
         CreateOffscreenPlainSurfaceEx = 130,
         CreateDepthStencilSurfaceEx = 131,
@@ -151,4 +152,39 @@ namespace Capture.Hook
         GetDisplayModeEx = 133,
     }
 
+    public enum Direct3DSurface9FunctionOrdinals : short
+    {
+        QueryInterface = 0,
+        AddRef = 1,
+        Release = 2,
+        GetDevice = 3,
+        SetPrivateData = 4,
+        GetPrivateData = 5,
+        FreePrivateData = 6,
+        SetPriority = 7,
+        GetPriority = 8,
+        PreLoad = 9,
+        GetType = 10,
+        GetContainer = 11,
+        GetDesc = 12,
+        LockRect = 13,
+        UnlockRect = 14,
+        GetDC = 15,
+        ReleaseDC = 16,
+    }
+
+    public enum DirectXSwapChainFunctionOrdinals : short
+    {
+        QueryInterface = 0,
+        AddRef = 1,
+        Release = 2,
+        Present = 3,
+        GetFrontBufferData = 4,
+        GetBackBuffer = 5,
+        GetRasterStatus = 6,
+        GetDisplayMode = 7,
+        GetDevice = 8,
+        GetPresentParameters = 9,
+
+    }
 }

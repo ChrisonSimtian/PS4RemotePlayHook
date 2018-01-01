@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -16,6 +17,7 @@ namespace Capture.Interface
             try
             {
                 var img = new Bitmap(width, height, stride, pixelFormat, handle.AddrOfPinnedObject());
+
                 return img;
             }
             finally
@@ -25,16 +27,11 @@ namespace Capture.Interface
             }
         }
 
-        public static Bitmap ToBitmap(this Screenshot screenshot)
+        public static Bitmap ToJPGBitmap(this byte[] data, int width, int height, int stride, System.Drawing.Imaging.PixelFormat pixelFormat)
         {
-            if (screenshot.Format == ImageFormat.PixelData)
-            {
-                return screenshot.Data.ToBitmap(screenshot.Width, screenshot.Height, screenshot.Stride, screenshot.PixelFormat);
-            }
-            else
-            {
-                return screenshot.Data.ToBitmap();
-            }
+            var img = data.ToBitmap(width, height, stride, pixelFormat);
+            byte[]  byteArray = img.ToByteArray(System.Drawing.Imaging.ImageFormat.Jpeg);
+            return byteArray.ToBitmap();
         }
 
         public static Bitmap ToBitmap(this byte[] imageBytes)
@@ -53,6 +50,24 @@ namespace Capture.Interface
             }
         }
 
+        public static byte[] ToByteCompessedArray(this Image img, System.Drawing.Imaging.ImageFormat format)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                // https://msdn.microsoft.com/de-de/library/bb882583(v=vs.110).aspx
+                ImageCodecInfo jpgEncoder = GetEncoder(System.Drawing.Imaging.ImageFormat.Jpeg);
+                System.Drawing.Imaging.Encoder myEncoder = System.Drawing.Imaging.Encoder.Quality;
+                EncoderParameters myEncoderParameters = new EncoderParameters(1);
+
+                EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, 60L);
+                myEncoderParameters.Param[0] = myEncoderParameter;
+                img.Save(stream, jpgEncoder, myEncoderParameters);
+                //img.Save(stream, format);
+                stream.Close();
+                return stream.ToArray();
+            }
+        }
+
         public static byte[] ToByteArray(this Image img, System.Drawing.Imaging.ImageFormat format)
         {
             using (MemoryStream stream = new MemoryStream())
@@ -60,6 +75,30 @@ namespace Capture.Interface
                 img.Save(stream, format);
                 stream.Close();
                 return stream.ToArray();
+            }
+        }
+
+        private static ImageCodecInfo GetEncoder(System.Drawing.Imaging.ImageFormat format)
+        {
+
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
+
+            foreach (ImageCodecInfo codec in codecs)
+            {
+                if (codec.FormatID == format.Guid)
+                {
+                    return codec;
+                }
+            }
+            return null;
+        }
+
+        public static Bitmap ToJPGBitmap(this byte[] img, System.Drawing.Imaging.ImageFormat format)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                Image image = Image.FromStream(stream);
+                return image.ToByteArray(format).ToBitmap();
             }
         }
     }

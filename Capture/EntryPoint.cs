@@ -62,6 +62,7 @@ namespace Capture
             // NOTE: This is running in the target process
             _interface.Message(MessageType.Information, "Injected into process Id:{0}.", EasyHook.RemoteHooking.GetCurrentProcessId());
 
+            // all threads are blocking till someonde is calling Set() -> http://dotnetpattern.com/threading-manualresetevent
             _runWait = new System.Threading.ManualResetEvent(false);
             _runWait.Reset();
             try
@@ -139,12 +140,14 @@ namespace Capture
 
         private bool InitialiseDirectXHook(CaptureConfig config)
         {
+            _interface.Message(MessageType.Debug, "Initialise DirectX 9 Hook");
             Direct3DVersion version = config.Direct3DVersion;
 
             List<Direct3DVersion> loadedVersions = new List<Direct3DVersion>();
 
             bool isX64Process = EasyHook.RemoteHooking.IsX64Process(EasyHook.RemoteHooking.GetCurrentProcessId());
             _interface.Message(MessageType.Information, "Remote process is a {0}-bit process.", isX64Process ? "64" : "32");
+
 
             try
             {
@@ -221,30 +224,26 @@ namespace Capture
                     version = dxVersion;
                     switch (version)
                     {
+                        /*
+                         * Add other DirectX version hooks if needed in the future
+                         * */
                         case Direct3DVersion.Direct3D9:
-                            _directXHook = new DXHookD3D9(_interface);
+                            _interface.Message(MessageType.Debug, "Try to load Direct3D9 version: {0}", version);
+                            _directXHook = new DXHookD3D9(_interface, config.CaptureWidth, config.CaptureHeight);
                             break;
-                        case Direct3DVersion.Direct3D10:
-                            _directXHook = new DXHookD3D10(_interface);
-                            break;
-                        case Direct3DVersion.Direct3D10_1:
-                            _directXHook = new DXHookD3D10_1(_interface);
-                            break;
-                        case Direct3DVersion.Direct3D11:
-                            _directXHook = new DXHookD3D11(_interface);
-                            break;
-                        //case Direct3DVersion.Direct3D11_1:
-                        //    _directXHook = new DXHookD3D11_1(_interface);
-                        //    return;
                         default:
-                            _interface.Message(MessageType.Error, "Unsupported Direct3D version: {0}", version);
-                            return false;
+                            _interface.Message(MessageType.Error, "Unsupported Direct3D version, RemotePlay uses DirectX 9 and not: {0}", version);
+                            break;
                     }
 
-                    _directXHook.Config = config;
-                    _directXHook.Hook();
+                    if (_directXHook != null)
+                    {
+                        _directXHook.Config = config;
+                        _directXHook.Hook();
 
-                    _directXHooks.Add(_directXHook);
+                        _directXHooks.Add(_directXHook);
+                    }
+                    
                 }
 
                 return true;

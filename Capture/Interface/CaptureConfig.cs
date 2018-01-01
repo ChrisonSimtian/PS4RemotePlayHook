@@ -11,16 +11,48 @@ namespace Capture.Interface
     public class CaptureConfig
     {
         public Direct3DVersion Direct3DVersion { get; set; }
-        public bool ShowOverlay { get; set; }
-        public int TargetFramesPerSecond { get; set; }
-        public string TargetFolder { get; set; }
+
+        private int captureWidth;
+
+        /// <summary>
+        /// The capture width.
+        /// Min size is 1 and max size is 1280 (HD)
+        /// </summary>
+        public int CaptureWidth
+        {
+            get { return captureWidth; }
+            set
+            {
+                if (value > 0 && value <= 1280)
+                {
+                    captureWidth = value;
+                }
+            }
+        }
+
+        private int captureHeight;
+
+        /// <summary>
+        /// The capture height
+        /// Min size is 1 and max size is 720 (HD)
+        /// </summary>
+        public int CaptureHeight
+        {
+            get { return captureHeight; }
+            set
+            {
+                if (value > 0 && value <= 720)
+                {
+                    captureHeight = value;
+                }
+            }
+        }
 
         public CaptureConfig()
         {
             Direct3DVersion = Direct3DVersion.AutoDetect;
-            ShowOverlay = false;
-            TargetFramesPerSecond = 5;
-            TargetFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            CaptureWidth = 720;
+            CaptureHeight = 540;
         }
     }
 }
