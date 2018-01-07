@@ -46,7 +46,7 @@ namespace TestScreenshot
 
         public virtual void SimpleImageCaptureLoop()
         {
-            using (var consumer = new BufferReadWrite(name: "MySharedMemory", bufferSize: ((8294400 + FastStructure<MetaDataStruct>.Size)) * 2)) // Should be large enough to store 2 full hd raw image data + 4 Size of Struct
+            using (var consumer = new CircularBuffer(name: "MySharedMemory", nodeCount: 4, nodeBufferSize: ((8294400 + FastStructure<MetaDataStruct>.Size)) * 2)) // Should be large enough to store 2 full hd raw image data + 4 Size of Struct
             {
                 Stopwatch stopwatch = new Stopwatch();
                 do
@@ -55,22 +55,18 @@ namespace TestScreenshot
                     stopwatch.Start();
                     try
                     {
-                        if (consumer.AcquireReadLock(MAX_SLEEP_TIME))
+                        consumer.Read(intPtr =>
                         {
-                            MetaDataStruct metaData;
-                            consumer.Read(out metaData);
-
-
+                            MetaDataStruct metaData = FastStructure.PtrToStructure<MetaDataStruct>(intPtr);
                             if (metaData.length > 0)
                             {
                                 byte[] byteArray = new byte[metaData.length];
-                                consumer.Read<byte>(byteArray, FastStructure<MetaDataStruct>.Size);
-                                consumer.ReleaseReadLock();
+                                FastStructure.ReadArray<byte>(byteArray, intPtr, 0, byteArray.Length);
 
                                 using (var bm = byteArray.ToBitmap(metaData.width, metaData.height, metaData.pitch, metaData.format))
                                 {
-                                    byte[] imageByteArray = bm.ToByteArray(System.Drawing.Imaging.ImageFormat.Jpeg);
-                                    Bitmap bitmap = imageByteArray.ToBitmap();
+                                    byte[] compressedJpgByteArray = bm.ToByteCompessedArray();
+                                    Bitmap bitmap = compressedJpgByteArray.ToBitmap();
 
                                     pictureBox1.Invoke(new MethodInvoker(delegate ()
                                     {
@@ -82,7 +78,8 @@ namespace TestScreenshot
                                     }));
                                 }
                             }
-                        }
+                            return 0;
+                        }, timeout: MAX_SLEEP_TIME);
                     }
                     catch (TimeoutException exception)
                     {
@@ -92,11 +89,7 @@ namespace TestScreenshot
                     {
                         Console.WriteLine(ex);
                     }
-                    finally
-                    {
-                        consumer.ReleaseReadLock();
-                    }
-                    
+
                     int timeout = (int)(MAX_SLEEP_TIME - stopwatch.ElapsedMilliseconds);
                     Thread.Sleep(timeout >= 0 ? timeout : 0);
                 } while (true);

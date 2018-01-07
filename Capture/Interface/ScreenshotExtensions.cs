@@ -50,7 +50,7 @@ namespace Capture.Interface
             }
         }
 
-        public static byte[] ToByteCompessedArray(this Image img, System.Drawing.Imaging.ImageFormat format)
+        public static byte[] ToByteCompessedArray(this Image img)
         {
             using (MemoryStream stream = new MemoryStream())
             {

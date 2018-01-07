@@ -19,12 +19,12 @@ namespace Capture.Hook
 
         protected volatile int captureHeight;
 
-        private readonly BufferReadWrite producer;
+        private readonly CircularBuffer producer;
 
         public BaseDXHook(CaptureInterface ssInterface, int captureWidth, int captureHeight)
         {
             this.Interface = ssInterface;
-            this.producer = new BufferReadWrite(name: "MySharedMemory");
+            this.producer = new CircularBuffer(name: "MySharedMemory");
             this.captureWidth = captureWidth;
             this.captureHeight = captureHeight;
             Interface.ResolutionChanged += InterfaceEventProxy.ResolutionChangeHandler;
@@ -128,31 +128,34 @@ namespace Capture.Hook
 
             try
             {
-                Marshal.Copy(pBits, data, 0, size);
-                if (producer.AcquireWriteLock(1)) // skip frame if we cannot aquire lock immediately
+                try
                 {
-                    MetaDataStruct metaData = new MetaDataStruct(data.Length, width, height, pitch, format);
-                    producer.Write(ref metaData);
-                    producer.Write(data, FastStructure<MetaDataStruct>.Size);
-                    producer.ReleaseWriteLock();
+                    Marshal.Copy(pBits, data, 0, size);
+                    producer.Write(intPtr =>
+                    {
+                        MetaDataStruct metaData = new MetaDataStruct(data.Length, width, height, pitch, format);
+                        FastStructure.StructureToPtr(ref metaData, intPtr);
+                        intPtr += FastStructure<MetaDataStruct>.Size;
+                        FastStructure.WriteArray<byte>(intPtr, data, 0, data.Length);
+                        return 0;
+                    }, 0); // skip frame if we cannot write to circular buffer immediately
+                }
+                catch (TimeoutException)
+                {
+                    // If we could not acquire write lock skip frame
+                }
+                catch (AccessViolationException)
+                {
+                    // In this specifc case we are ignoring CSE (corrupted state exception)
+                    // It could happen during Window resizing.
+                    // If someone knows are better way please feel free to contribute
+                    // Because there is a timout in the resizing hook this exception should never be thrown
                 }
             }
-            catch (TimeoutException)
+            catch (ObjectDisposedException)
             {
-                // If we could not acquire write lock skip frame
+                // swallow exception to not crash hooked process
             }
-            catch (AccessViolationException)
-            {
-                // In this specifc case we are ignoring CSE (corrupted state exception)
-                // It could happen during Window resizing.
-                // If someone knows are better way please feel free to contribute
-                // Because there is a timout in the resizing hook this exception should never be thrown
-            }
-            finally
-            {
-                producer.ReleaseWriteLock();
-            }
-
         }
 
         #region IDXHook Members
