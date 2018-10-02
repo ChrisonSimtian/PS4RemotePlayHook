@@ -32,8 +32,6 @@ namespace Capture.Hook
         Hook<Direct3D9SwapChain_PresentDelegate> Direct3D9SwapChain_PresentHook = null;
         Hook<Direct3D9Surface_FreePrivateDataDelegate> Direct3D9Surface_FreePrivateDataHook = null;
 
-        object _lockRenderTarget = new object();
-
         bool _resourcesInitialised;
         bool _renderTargetCopyLocked = false;
         Surface _renderTargetCopy;
@@ -114,15 +112,12 @@ namespace Capture.Hook
         /// </summary>
         public override void Cleanup()
         {
-            lock (_lockRenderTarget)
-            {
-                _resourcesInitialised = false;
+            _resourcesInitialised = false;
 
-                RemoveAndDispose(ref _renderTargetCopy);
-                _renderTargetCopyLocked = false;
+            RemoveAndDispose(ref _renderTargetCopy);
+            _renderTargetCopyLocked = false;
 
-                RemoveAndDispose(ref _resolvedTarget);
-            }
+            RemoveAndDispose(ref _resolvedTarget);
         }
 
         /********************/
@@ -182,10 +177,7 @@ namespace Capture.Hook
                     // Copy the data from the render target
                     System.Threading.Tasks.Task.Factory.StartNew(() =>
                     {
-                        lock (_lockRenderTarget)
-                        {
-                            ProcessFrame(rect.Width, rect.Height, lockedRect.Pitch, _renderTargetCopy.Description.Format.ToPixelFormat(), lockedRect.DataPointer);
-                        }
+                        ProcessFrame(rect.Width, rect.Height, lockedRect.Pitch, _renderTargetCopy.Description.Format.ToPixelFormat(), lockedRect.DataPointer);
                     });
                 }
                 int width;
@@ -248,14 +240,10 @@ namespace Capture.Hook
                 // If the render target is locked from a previous request unlock it
                 if (_renderTargetCopyLocked)
                 {
-                    // Wait for the the ProcessCapture thread to finish with it
-                    lock (_lockRenderTarget)
+                    if (_renderTargetCopyLocked)
                     {
-                        if (_renderTargetCopyLocked)
-                        {
-                            _renderTargetCopy.UnlockRectangle();
-                            _renderTargetCopyLocked = false;
-                        }
+                        _renderTargetCopy.UnlockRectangle();
+                        _renderTargetCopyLocked = false;
                     }
                 }
 
