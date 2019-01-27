@@ -15,5 +15,5 @@ https://github.com/spazzarama/SharedMemory
 **API Monitor v2**
 http://www.rohitab.com/apimonitor
 
-The prototype is able to hook into the running PS4 Remote Play program and capture the screen. We can capture the remote play screen at a max resolution of 1280*720. At higher resolutions the IPC slows down the Remote Play process and made it laggy.
+The prototype is able to hook into the running PS4 Remote Play program and capture the screen. We can capture the remote play screen at a max resolution of 1280*720. At higher resolutions the IPC slows down the Remote Play process and made it laggy. If you want to process the captured images in real time it is recommended to process it directly in the hook and not sending it to your process via IPC as this has some performance impacts.
 If you have any suggestions of how we can improve performance feel free to contribute so that we can improve the project.
